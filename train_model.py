@@ -3,7 +3,8 @@ from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.metrics import accuracy_score, root_mean_squared_error
 import pandas as pd 
 from scipy.stats import pearsonr
-
+import json #save model as json 
+from pathlib import Path 
 
 gdsc = pd.read_excel("gdsc2_ic50.xlsx")
 mut = pd.read_csv("mutations_summary.csv")
@@ -69,3 +70,17 @@ print("RMSE:", rmse)
 print("Pearson r:", corr)
 print("Train rows:", len(X_train), "| Test rows:", len(X_test))
 print("Train cell line:", groups.iloc[train_index].nunique(), "| Test cell lines:", groups.iloc[test_index].nunique())
+ARTIFACT_DIR = Path("model_artifacts")
+ARTIFACT_DIR.mkdir(exist_ok = True)
+#save the model
+model.save_model(ARTIFACT_DIR/"xgb_model.json")
+metadata = {
+    "gene_cols": gene_cols,
+    "drug_categories": list(data["DRUG_NAME"].cat.categories)
+}
+with open(ARTIFACT_DIR/"model_metadata.json","w") as f:
+    json.dump(metadata,f)
+
+#save table
+X.to_csv(ARTIFACT_DIR/"cell_line_mutation_features.csv", index=False)
+print(f"Saved artifacts to {ARTIFACT_DIR.resolve()}")
