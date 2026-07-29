@@ -8,3 +8,4 @@ class PredictResponse(BaseModel):
     prediction: float
     model_version: str
     drug_name: str
+    model_version: str

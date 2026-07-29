@@ -1,4 +1,4 @@
-from fastapi.testclient import testclient
+from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
@@ -8,7 +8,7 @@ def test_predict_success_endpoint():
         "/predict",
         json= {
             "cell_line_id": "A549",
-            "drug_name": "cisplastin"
+            "drug_name": "cisplatin"
         }
     )
 
@@ -16,7 +16,7 @@ def test_predict_success_endpoint():
     data = res.json() 
     assert "prediction" in data
     assert "model_version" in data
-    assert data["drug_name"] == "cisplastin"
+    assert data["drug_name"] == "cisplatin"
 
 
 def test_predict_endpoint_missing_field():

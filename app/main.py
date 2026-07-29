@@ -14,7 +14,7 @@ def health():
 @app.post("/predict", response_model=PredictResponse)
 def predict_endpoint(req: PredictRequest):
     try:
-        result = predict(req.cell_line_id, req.drug_id)
+        result = predict(req.cell_line_id, req.drug_name)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
