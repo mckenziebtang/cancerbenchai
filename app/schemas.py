@@ -6,6 +6,6 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     prediction: float
-    model_version: str
+    cell_line_id: str
     drug_name: str
     model_version: str
