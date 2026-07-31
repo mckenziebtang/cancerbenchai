@@ -75,3 +75,8 @@ def test_build_feature_row_encodes_drug_as_category(fake_artifacts):
         "paclitaxel",
     ]
     assert row.iloc[0]["DRUG_NAME"] == "cisplatin"
+
+
+def test_supported_values_are_sorted_and_unique(fake_artifacts):
+    assert app_model.supported_cell_line_ids() == ["A549", "MCF7"]
+    assert app_model.supported_drug_names() == ["cisplatin", "paclitaxel"]

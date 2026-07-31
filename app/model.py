@@ -23,16 +23,35 @@ model.load_model(MODEL_PATH)
 
 cell_line_features = pd.read_csv(FEATURES_PATH)
 
+MODEL_VERSION = metadata.get("model_version", "xgb_v1")
+
+
+class UnknownCellLineError(ValueError):
+    pass
+
+
+class UnknownDrugError(ValueError):
+    pass
+
+
+def supported_cell_line_ids() -> list[str]:
+    return sorted(cell_line_features["model_id"].astype(str).unique().tolist())
+
+
+def supported_drug_names() -> list[str]:
+    return sorted(str(drug) for drug in drug_categories)
+
+
 def build_feature_row(cell_line_id: str, drug_name: str) -> pd.DataFrame:
     row = cell_line_features[cell_line_features["model_id"] == cell_line_id].copy()
 
     if row.empty:
-        raise ValueError(f"Unknown cell line: {cell_line_id}")
+        raise UnknownCellLineError(f"Unknown cell line: {cell_line_id}")
 
     row = row[gene_cols].copy()
 
     if drug_name not in drug_categories:
-        raise ValueError(f"Unknown drug: {drug_name}")
+        raise UnknownDrugError(f"Unknown drug: {drug_name}")
 
     row["DRUG_NAME"] = pd.Categorical([drug_name], categories=drug_categories)
 
@@ -46,5 +65,5 @@ def predict(cell_line_id: str, drug_name: str) -> PredictResponse:
         prediction=prediction,
         cell_line_id=cell_line_id,
         drug_name=drug_name,
-        model_version="xgb_v1",
+        model_version=MODEL_VERSION,
     )

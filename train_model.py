@@ -1,10 +1,11 @@
 import xgboost as xgb
-from sklearn.model_selection import train_test_split, GroupShuffleSplit
-from sklearn.metrics import accuracy_score, root_mean_squared_error
+from sklearn.model_selection import GroupShuffleSplit
+from sklearn.metrics import root_mean_squared_error
 import pandas as pd 
 from scipy.stats import pearsonr
 import json #save model as json 
 from pathlib import Path 
+from datetime import datetime, timezone
 
 gdsc = pd.read_excel("gdsc2_ic50.xlsx")
 mut = pd.read_csv("mutations_summary.csv")
@@ -75,8 +76,21 @@ ARTIFACT_DIR.mkdir(exist_ok = True)
 #save the model
 model.save_model(ARTIFACT_DIR/"xgb_model.json")
 metadata = {
+    "model_version": "xgb_v1",
+    "model_type": "XGBoost regressor",
+    "dataset": "GDSC2",
+    "target": "LN_IC50",
+    "trained_at": datetime.now(timezone.utc).isoformat(),
     "gene_cols": gene_cols,
-    "drug_categories": list(data["DRUG_NAME"].cat.categories)
+    "drug_categories": list(data["DRUG_NAME"].cat.categories),
+    "training_rows": len(X_train),
+    "test_rows": len(X_test),
+    "training_cell_lines": int(groups.iloc[train_index].nunique()),
+    "test_cell_lines": int(groups.iloc[test_index].nunique()),
+    "metrics": {
+        "rmse": float(rmse),
+        "pearson_r": float(corr),
+    },
 }
 with open(ARTIFACT_DIR/"model_metadata.json","w") as f:
     json.dump(metadata,f)

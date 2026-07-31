@@ -16,6 +16,28 @@ def test_predict_request_wrong_type():
     with pytest.raises(ValidationError):
         PredictRequest(cell_line_id=123, drug_name="cisplatin")
 
+
+def test_predict_request_strips_whitespace():
+    req = PredictRequest(cell_line_id=" SIDM00001 ", drug_name=" Cisplatin ")
+
+    assert req.cell_line_id == "SIDM00001"
+    assert req.drug_name == "Cisplatin"
+
+
+def test_predict_request_rejects_blank_value():
+    with pytest.raises(ValidationError):
+        PredictRequest(cell_line_id=" ", drug_name="Cisplatin")
+
+
+def test_predict_request_rejects_extra_fields():
+    with pytest.raises(ValidationError):
+        PredictRequest(
+            cell_line_id="SIDM00001",
+            drug_name="Cisplatin",
+            clinical_recommendation=True,
+        )
+
+
 def test_predict_response_valid():
     res = PredictResponse(
         prediction=0.42,
