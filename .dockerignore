@@ -1,0 +1,11 @@
+.git
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+tests/
+tmp/
+gdsc2_ic50.xlsx
+mutations_summary.csv
