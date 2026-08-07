@@ -1,0 +1,28 @@
+services:
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  explanation-api:
+    build: .
+    command: uvicorn explanation_service.main:app --host 0.0.0.0 --port 8001
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  explanation-worker:
+    build: .
+    command: python -m explanation_service.worker
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy

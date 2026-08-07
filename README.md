@@ -57,6 +57,28 @@ Run the tests:
 python3 -m pytest -q
 ```
 
+## Generate an explanation
+
+The phase-two service calculates XGBoost feature contributions asynchronously.
+Start its API, Redis queue, and worker together:
+
+```bash
+docker compose up --build
+```
+
+Submit a job at <http://localhost:8001/explain>:
+
+```bash
+curl -X POST http://localhost:8001/explain \
+  -H "Content-Type: application/json" \
+  -d '{"cell_line_id":"SIDM00001","drug_name":"Cisplatin"}'
+```
+
+Poll the `status_url` returned by that request until its status is `completed`.
+The result contains the prediction, model base value, and contribution made by
+each mutation or drug feature. These are model explanations, not evidence of
+biological causality or clinical recommendations.
+
 ## Run with Docker
 
 ```bash
@@ -78,5 +100,6 @@ and limitations.
 Client -> FastAPI validation -> feature construction -> XGBoost -> JSON response
 ```
 
-Upcoming phases add asynchronous SHAP explanations, literature retrieval,
-tool-based orchestration, distributed tracing, and a minimal research UI.
+The phase-two explanation service adds Redis-backed asynchronous XGBoost feature
+contributions. Upcoming phases add literature retrieval, tool-based
+orchestration, distributed tracing, and a minimal research UI.
