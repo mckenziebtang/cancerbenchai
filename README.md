@@ -66,18 +66,39 @@ Start its API, Redis queue, and worker together:
 docker compose up --build
 ```
 
-Submit a job at <http://localhost:8001/explain>:
+Submit a job at <http://localhost:8001/explanations>:
 
 ```bash
-curl -X POST http://localhost:8001/explain \
+curl -X POST http://localhost:8001/explanations \
   -H "Content-Type: application/json" \
   -d '{"cell_line_id":"SIDM00001","drug_name":"Cisplatin"}'
 ```
 
 Poll the `status_url` returned by that request until its status is `completed`.
-The result contains the prediction, model base value, and contribution made by
-each mutation or drug feature. These are model explanations, not evidence of
-biological causality or clinical recommendations.
+The result contains the prediction, model base value, and ten largest mutation
+or drug contributions ranked by absolute magnitude. `other_contribution`
+preserves exact reconstruction of the prediction.
+
+Completed results are cached for one hour under a key containing both the model
+and explainer versions. Identical in-progress requests reuse one job. Transient
+worker failures are retried twice; validation failures are rejected before a job
+is created. If a worker crashes, RQ's worker monitoring marks the interrupted
+job for failure or retry, while the duplicate lock expires after six minutes so
+new work cannot be blocked indefinitely. Failed responses expose a stable error
+object and do not expose internal tracebacks.
+
+For local development, both services use the same versioned artifact directory
+included in the shared Docker image. At production scale artifacts should be immutable,
+versioned artifacts fetched from an artifact registry during deployment.
+These explanations describe model behavior, not biological causality or
+clinical recommendations.
+
+To run the test that exercises a real isolated Redis instance, provide a
+dedicated database URL:
+
+```bash
+REDIS_TEST_URL=redis://localhost:6379/15 python3 -m pytest -m integration
+```
 
 ## Run with Docker
 
