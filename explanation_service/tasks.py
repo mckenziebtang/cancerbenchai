@@ -10,6 +10,11 @@ from explanation_service.queue import redis_connection
 EXPLAINER_VERSION = "treeshap_v1"
 TOP_FEATURES = 10
 CACHE_TTL_SECONDS = 3600
+JOB_TIMEOUT_SECONDS = 300
+JOB_MAX_RETRIES = 2
+JOB_RETRY_INTERVALS = (5, 15)
+# Cover the initial attempt, both retries, their delays, and worker overhead.
+INFLIGHT_TTL_SECONDS = 1200
 
 
 def build_explanation(cell_line_id: str, drug_name: str) -> dict:

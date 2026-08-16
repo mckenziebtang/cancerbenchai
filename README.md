@@ -83,9 +83,10 @@ Completed results are cached for one hour under a key containing both the model
 and explainer versions. Identical in-progress requests reuse one job. Transient
 worker failures are retried twice; validation failures are rejected before a job
 is created. If a worker crashes, RQ's worker monitoring marks the interrupted
-job for failure or retry, while the duplicate lock expires after six minutes so
-new work cannot be blocked indefinitely. Failed responses expose a stable error
-object and do not expose internal tracebacks.
+job for failure or retry, while the duplicate lock expires after twenty minutes
+so it covers the initial attempt and both retries without blocking new work
+indefinitely. Failed responses expose a stable error object and do not expose
+internal tracebacks.
 
 For local development, both services use the same versioned artifact directory
 included in the shared Docker image. At production scale artifacts should be immutable,
