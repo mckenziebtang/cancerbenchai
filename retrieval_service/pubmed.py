@@ -107,7 +107,11 @@ def download_manifest(
     api_key: str | None = None,
 ) -> dict[str, int]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    selected: dict[str, str] = {}
+    # Curated anchors keep the evaluation corpus stable as PubMed search results change.
+    pinned_pmids = list(dict.fromkeys(str(pmid) for pmid in manifest.get("pinned_pmids", [])))
+    selected: dict[str, str] = {
+        pmid: "Curated evaluation PMID" for pmid in pinned_pmids
+    }
     for spec in manifest["queries"]:
         for pmid in search_pmids(spec["query"], int(spec["limit"]), api_key):
             selected.setdefault(pmid, spec["query"])
@@ -119,12 +123,21 @@ def download_manifest(
     for start in range(0, len(pmids), 100):
         articles.extend(fetch_articles(pmids[start : start + 100], selected, api_key))
         time.sleep(0.11 if api_key else 0.35)
+    missing = set(pinned_pmids) - {article["pmid"] for article in articles}
+    if missing:
+        raise ValueError(
+            "PubMed returned no abstract for pinned PMIDs: " + ", ".join(sorted(missing))
+        )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         "".join(json.dumps(article, ensure_ascii=False) + "\n" for article in articles),
         encoding="utf-8",
     )
-    return {"selected_pmids": len(selected), "abstracts_written": len(articles)}
+    return {
+        "pinned_pmids": len(pinned_pmids),
+        "selected_pmids": len(selected),
+        "abstracts_written": len(articles),
+    }
 
 
 def _text(element: ET.Element | None) -> str:

@@ -16,6 +16,7 @@ def evaluate(service: RetrievalService, cases: list[dict], top_k: int) -> dict:
     recalls: list[float] = []
     latencies: list[float] = []
     completeness: list[float] = []
+    no_evidence_checks: list[bool] = []
     details = []
     for case in cases:
         started = time.perf_counter()
@@ -26,11 +27,16 @@ def evaluate(service: RetrievalService, cases: list[dict], top_k: int) -> dict:
         returned = [result.pmid for result in response.results]
         expected = set(case["expected_pmids"])
         relevant_returned = expected.intersection(returned)
-        recall = len(relevant_returned) / len(expected) if expected else float(not returned)
         rank = next((index + 1 for index, pmid in enumerate(returned) if pmid in expected), None)
-        reciprocal_rank = 1 / rank if rank else 0.0
-        recalls.append(recall)
-        reciprocal_ranks.append(reciprocal_rank)
+        if expected:
+            recall = len(relevant_returned) / len(expected)
+            reciprocal_rank = 1 / rank if rank else 0.0
+            recalls.append(recall)
+            reciprocal_ranks.append(reciprocal_rank)
+        else:
+            recall = None
+            reciprocal_rank = None
+            no_evidence_checks.append(not returned)
         for result in response.results:
             fields = [result.pmid, result.title, result.url, result.year, result.journal, result.ingestion_date]
             completeness.append(sum(value is not None and value != "" for value in fields) / len(fields))
@@ -39,12 +45,18 @@ def evaluate(service: RetrievalService, cases: list[dict], top_k: int) -> dict:
                 "name": case["name"], "returned_pmids": returned,
                 "expected_pmids": sorted(expected), "recall_at_k": recall,
                 "reciprocal_rank": reciprocal_rank,
+                "no_evidence_correct": not returned if not expected else None,
             }
         )
     return {
         "case_count": len(cases), "top_k": top_k,
-        "recall_at_k": statistics.fmean(recalls),
-        "mean_reciprocal_rank": statistics.fmean(reciprocal_ranks),
+        "positive_case_count": len(recalls),
+        "no_evidence_case_count": len(no_evidence_checks),
+        "recall_at_k": statistics.fmean(recalls) if recalls else 0.0,
+        "mean_reciprocal_rank": statistics.fmean(reciprocal_ranks) if reciprocal_ranks else 0.0,
+        "no_evidence_accuracy": (
+            statistics.fmean(no_evidence_checks) if no_evidence_checks else None
+        ),
         "citation_metadata_completeness": statistics.fmean(completeness) if completeness else 0.0,
         "latency_ms": {
             "mean": statistics.fmean(latencies),

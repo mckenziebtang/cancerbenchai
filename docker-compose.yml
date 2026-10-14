@@ -63,7 +63,7 @@ services:
     environment:
       DATABASE_URL: postgresql://cancerbench:cancerbench@postgres:5432/cancerbench
     ports:
-      - "8002:8002"
+      - "127.0.0.1:18002:8002"
     depends_on:
       postgres:
         condition: service_healthy

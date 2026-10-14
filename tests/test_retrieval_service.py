@@ -1,5 +1,7 @@
 from datetime import date
+import json
 import os
+from types import SimpleNamespace
 import uuid
 
 import pytest
@@ -7,6 +9,8 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from retrieval_service.aliases import extract_normalized_terms, normalize_aliases
+from retrieval_service.evaluate import evaluate
+from retrieval_service.pubmed import download_manifest
 from retrieval_service.main import create_app
 from retrieval_service.schemas import ArticleInput, RetrieveRequest
 from retrieval_service.service import RetrievalService
@@ -185,3 +189,39 @@ def test_postgres_pgvector_ingestion_and_retrieval():
         with psycopg.connect(database_url) as connection, connection.cursor() as cursor:
             cursor.execute("DELETE FROM literature_articles WHERE pmid = %s", (pmid,))
 
+
+
+def test_manifest_download_includes_curated_pmids(tmp_path, monkeypatch):
+    manifest = tmp_path / "manifest.json"
+    output = tmp_path / "articles.jsonl"
+    manifest.write_text(json.dumps({
+        "pinned_pmids": ["111"],
+        "queries": [{"query": "sample", "limit": 1}],
+    }))
+    monkeypatch.setattr("retrieval_service.pubmed.search_pmids", lambda *args: ["222"])
+    monkeypatch.setattr("retrieval_service.pubmed.time.sleep", lambda *_: None)
+
+    def fake_fetch(pmids, selection_queries, api_key):
+        assert set(pmids) == {"111", "222"}
+        assert selection_queries["111"] == "Curated evaluation PMID"
+        return [{"pmid": pmid} for pmid in pmids]
+
+    monkeypatch.setattr("retrieval_service.pubmed.fetch_articles", fake_fetch)
+    counts = download_manifest(manifest, output)
+    assert counts == {"pinned_pmids": 1, "selected_pmids": 2, "abstracts_written": 2}
+    assert len(output.read_text().splitlines()) == 2
+
+
+def test_no_evidence_case_does_not_raise_positive_recall():
+    class EmptyService:
+        def retrieve(self, request):
+            return SimpleNamespace(results=[])
+
+    report = evaluate(EmptyService(), [
+        {"name": "positive", "query": "cisplatin", "expected_pmids": ["123"]},
+        {"name": "negative", "query": "lunar", "expected_pmids": []},
+    ], top_k=5)
+    assert report["recall_at_k"] == 0.0
+    assert report["mean_reciprocal_rank"] == 0.0
+    assert report["no_evidence_accuracy"] == 1.0
+    assert report["positive_case_count"] == 1

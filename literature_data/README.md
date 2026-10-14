@@ -1,8 +1,10 @@
 # CancerBench literature dataset
 
-The committed manifest is the reproducible source definition for the Phase 3
-corpus. It selects up to 300 unique, relevance-ranked PubMed records across ten
-cancer drug-response topics. Only records with an English abstract are retained.
+The committed manifest defines ten PubMed searches and 24 curated PMID
+anchors used by the evaluation set. The anchors remain included when relevance
+rankings change; the rest of the search-selected corpus may change over time.
+Review evaluation labels and paper abstracts before reporting quality results.
+Only records with an English abstract are retained.
 Each downloaded record preserves its PMID, DOI when present, title, abstract,
 authors, year, journal, canonical PubMed URL, selection query, and download date.
 
@@ -38,6 +40,7 @@ Run the 20-case retrieval evaluation after ingestion:
 python -m retrieval_service.evaluate --output literature_data/evaluation_report.json
 ```
 
-The report includes recall@5, mean reciprocal rank, expected and returned PMIDs,
-citation metadata completeness, and mean/p95 retrieval latency. A zero-evidence
-case verifies that the service does not manufacture support from weak matches.
+The report averages recall@5 and mean reciprocal rank over the 19 positive
+cases. It reports no-evidence accuracy separately, along with expected and
+returned PMIDs, citation metadata completeness, and retrieval latency. A
+zero-evidence case checks that the service can return an empty result.
