@@ -1,0 +1,19 @@
+{
+  "dataset": "CancerBench Phase 3 literature corpus",
+  "source": "PubMed via NCBI E-utilities",
+  "selection_method": "Top relevance-ranked English-language articles with abstracts for ten predefined cancer pharmacogenomics topics.",
+  "target_size": "200-500 unique abstracts",
+  "usage_note": "PubMed records may include copyrighted abstracts. Use records only as permitted by NCBI and the source publisher; preserve attribution and links.",
+  "queries": [
+    {"query": "cisplatin resistance TP53 cancer AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "EGFR gefitinib erlotinib sensitivity resistance cancer AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "BRAF inhibitor resistance melanoma AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "KRAS drug response colorectal cancer AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "ERBB2 HER2 trastuzumab resistance breast cancer AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "PIK3CA drug sensitivity cancer cell line AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "olaparib PARP inhibitor sensitivity resistance BRCA cancer AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "temozolomide resistance glioblastoma cell line AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "paclitaxel resistance cancer cell line AND hasabstract[text] AND english[language]", "limit": 30},
+    {"query": "doxorubicin fluorouracil cancer drug response cell line AND hasabstract[text] AND english[language]", "limit": 30}
+  ]
+}

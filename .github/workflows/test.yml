@@ -23,8 +23,22 @@ jobs:
           --health-interval 2s
           --health-timeout 2s
           --health-retries 10
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: cancerbench_test
+          POSTGRES_USER: cancerbench
+          POSTGRES_PASSWORD: cancerbench
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cancerbench -d cancerbench_test"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 15
     env:
       REDIS_TEST_URL: redis://localhost:6379/15
+      POSTGRES_TEST_URL: postgresql://cancerbench:cancerbench@localhost:5432/cancerbench_test
 
     steps:
       - name: Check out repository

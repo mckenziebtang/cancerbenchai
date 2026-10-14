@@ -123,5 +123,65 @@ Client -> FastAPI validation -> feature construction -> XGBoost -> JSON response
 ```
 
 The phase-two explanation service adds Redis-backed asynchronous XGBoost feature
-contributions. Upcoming phases add literature retrieval, tool-based
-orchestration, distributed tracing, and a minimal research UI.
+contributions. Phase three adds the literature retrieval service described
+below. Future phases add tool-based orchestration, distributed tracing, and a
+minimal research UI.
+
+## Retrieve scientific literature
+
+Phase three adds an independent FastAPI service backed by PostgreSQL and
+`pgvector`. It returns stable PMID citations, relevant passages, similarity
+scores, full source metadata, and ingestion provenance. Similarity is a retrieval
+signal, not evidence that a scientific claim is true.
+
+Start the database and retrieval API:
+
+```bash
+docker compose up --build postgres retrieval-api
+```
+
+Build the reproducible 200–500-article target corpus from the reviewed PubMed
+manifest, then load it idempotently:
+
+```bash
+python -m retrieval_service.ingest download
+DATABASE_URL=postgresql://cancerbench:cancerbench@localhost:5432/cancerbench \
+  python -m retrieval_service.ingest load
+```
+
+Retrieve evidence at <http://localhost:8002/retrieve>:
+
+```bash
+curl -X POST http://localhost:8002/retrieve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "TP53-associated resistance to Cisplatin",
+    "top_k": 5,
+    "filters": {"year_from": 2015, "minimum_score": 0.08}
+  }'
+```
+
+Filters support publication year, journal, normalized drug/gene aliases, and a
+minimum relevance threshold. `p53`/`TP53`, `CDDP`/`cisplatin`,
+`HER2`/`ERBB2`, and other documented aliases retrieve against the same canonical
+terms. The service deliberately returns an empty result set rather than padding
+weak evidence below the threshold.
+
+Run the committed 20-query evaluation set:
+
+```bash
+python -m retrieval_service.evaluate \
+  --output literature_data/evaluation_report.json
+```
+
+The regular test suite uses an in-memory literature store for fast, deterministic
+checks. To also exercise the real PostgreSQL schema and pgvector similarity
+operator, provide an isolated database URL:
+
+```bash
+POSTGRES_TEST_URL=postgresql://cancerbench:cancerbench@localhost:5432/cancerbench_test \
+  python3 -m pytest -m integration
+```
+
+Corpus provenance, usage constraints, rebuild instructions, and evaluation
+details are documented in `literature_data/README.md`.

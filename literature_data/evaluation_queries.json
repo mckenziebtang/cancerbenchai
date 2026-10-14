@@ -1,0 +1,25 @@
+{
+  "description": "Twenty grounded retrieval checks spanning drugs, genes, combinations, response language, aliases, filters, and no-evidence behavior.",
+  "cases": [
+    {"name": "cisplatin-tp53-resistance", "query": "TP53-associated resistance to cisplatin", "expected_pmids": ["34769213", "23839309"]},
+    {"name": "cddp-p53-aliases", "query": "Does p53 loss cause CDDP resistance?", "expected_pmids": ["34769213", "23839309"]},
+    {"name": "tp53-head-neck-sensitivity", "query": "TP53 status and cisplatin sensitivity in head and neck cancer", "expected_pmids": ["23839309"]},
+    {"name": "braf-inhibitor-resistance", "query": "BRAF inhibitor resistance mechanisms in melanoma", "expected_pmids": ["33003483", "36181568"]},
+    {"name": "braf-clonal-evolution", "query": "clonal evolution during BRAF inhibitor therapy", "expected_pmids": ["24265155"]},
+    {"name": "her2-trastuzumab-resistance", "query": "HER2-positive breast cancer resistance to trastuzumab", "expected_pmids": ["24861025", "22720269"]},
+    {"name": "erbb2-herceptin-aliases", "query": "ERBB2 mechanisms of Herceptin resistance", "expected_pmids": ["24861025", "22720269"]},
+    {"name": "kras-anti-egfr-response", "query": "KRAS mutations and response to anti-EGFR treatment in colorectal cancer", "expected_pmids": ["21200037", "23090619"]},
+    {"name": "kras-g12c-inhibitor", "query": "KRAS G12C inhibitor response in colorectal cancer", "expected_pmids": ["40116975"]},
+    {"name": "pik3ca-drug-sensitivity", "query": "PIK3CA mutation sensitivity to pathway inhibitors in cancer cell lines", "expected_pmids": ["23888070", "23891627"]},
+    {"name": "egfr-erlotinib-resistance", "query": "EGFR-mutant lung cancer erlotinib resistance", "expected_pmids": ["19351834", "23407898"]},
+    {"name": "egfr-gefitinib-resistance", "query": "EGFR mutated lung cancer resistant to gefitinib", "expected_pmids": ["18981003"]},
+    {"name": "olaparib-brca2-resistance", "query": "BRCA2 restoration and olaparib resistance in ovarian cancer cells", "expected_pmids": ["37048111"]},
+    {"name": "olaparib-brca1-rechallenge", "query": "olaparib-resistant BRCA1 ovarian cancer PARP inhibitor sensitivity", "expected_pmids": ["39594596"]},
+    {"name": "tmz-glioblastoma-alias", "query": "TMZ resistance model in glioblastoma cell lines", "expected_pmids": ["35565340", "20357518"]},
+    {"name": "temozolomide-msh6", "query": "MSH6 loss and temozolomide resistance", "expected_pmids": ["19584161", "20357518"]},
+    {"name": "taxol-prostate-alias", "query": "Taxol-resistant prostate cancer cell line", "expected_pmids": ["27687545"]},
+    {"name": "paclitaxel-breast-ovarian", "query": "paclitaxel resistance genes in breast and ovarian cancer cells", "expected_pmids": ["15565326", "27664577"]},
+    {"name": "fluorouracil-colon-alias", "query": "5-FU metabolism and acquired resistance in colon cancer cell lines", "expected_pmids": ["33649846"]},
+    {"name": "no-strong-evidence", "query": "quantum photosynthesis in lunar basalt", "filters": {"journal": "Journal That Does Not Exist"}, "expected_pmids": []}
+  ]
+}

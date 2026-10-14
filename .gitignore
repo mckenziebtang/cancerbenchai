@@ -5,3 +5,7 @@ __pycache__/
 .venv/
 venv/
 tmp/
+literature_data/pubmed_abstracts.jsonl
+literature_data/evaluation_report.json
+output/McKenzie_Tang_DSS_Cover_Letter.docx
+beginner_commented_dress_up_game.py

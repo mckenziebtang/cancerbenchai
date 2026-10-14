@@ -4,6 +4,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY explanation_service ./explanation_service
+COPY retrieval_service ./retrieval_service
+COPY literature_data ./literature_data
 COPY model_artifacts ./model_artifacts
 
 EXPOSE 8000
