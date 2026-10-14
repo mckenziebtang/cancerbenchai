@@ -194,7 +194,7 @@ class PostgresLiteratureStore:
         sql = f"""
             SELECT * FROM (
                 SELECT DISTINCT ON (a.pmid)
-                       a.pmid, a.doi, a.title, c.passage, a.publication_year,
+                       a.pmid, a.doi, a.title, a.abstract, c.passage, a.publication_year,
                        a.journal, a.authors, a.canonical_url, a.ingestion_date,
                        a.selection_query, 1 - (c.embedding <=> %s::vector) AS score
                 FROM literature_chunks c
@@ -286,6 +286,7 @@ class InMemoryLiteratureStore:
                         "pmid": article.pmid,
                         "doi": article.doi,
                         "title": article.title,
+                        "abstract": article.abstract,
                         "passage": passage,
                         "publication_year": article.year,
                         "journal": article.journal,

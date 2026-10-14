@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from retrieval_service.aliases import extract_normalized_terms, normalize_aliases, normalize_filter_term
 from retrieval_service.chunking import chunk_abstract
 from retrieval_service.embeddings import HashingEmbedder
+from retrieval_service.ranking import rerank
 from retrieval_service.schemas import (
     ArticleInput,
     IngestionStats,
@@ -65,7 +66,12 @@ class RetrievalService:
             required_terms.append(normalize_filter_term(request.filters.drug))
         if request.filters.gene:
             required_terms.append(normalize_filter_term(request.filters.gene))
-        rows = self.store.search(query_vector, request.top_k, request.filters, required_terms)
+        # This Phase 3 corpus has a few hundred abstracts. Fetch a wider vector
+        # candidate pool so keyword matches below the first page can be reranked.
+        candidates = self.store.search(
+            query_vector, max(500, request.top_k), request.filters, required_terms
+        )
+        rows = rerank(normalized_query, candidates)
         minimum_score = (
             request.filters.minimum_score
             if request.filters.minimum_score is not None
@@ -82,7 +88,7 @@ class RetrievalService:
             )
             for row in rows
             if float(row["score"]) >= minimum_score
-        ]
+        ][: request.top_k]
         return RetrieveResponse(
             results=results,
             embedding_version=self.embedder.version,
