@@ -1,4 +1,10 @@
 .DS_Store
+.env
+.env.*
+!.env.example
+reports/
+*.egg-info/
+.ruff_cache/
 __pycache__/
 *.py[cod]
 .pytest_cache/

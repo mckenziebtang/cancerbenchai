@@ -1,10 +1,13 @@
 import json
 import math
+import time
 
 import xgboost as xgb
 
 from app.model import MODEL_VERSION, build_feature_row, model
 from explanation_service.queue import redis_connection
+from observability.telemetry import operation
+from redis.exceptions import RedisError
 
 
 EXPLAINER_VERSION = "treeshap_v1"
@@ -64,16 +67,33 @@ def run_explanation(
     cache_key: str,
     inflight_key: str,
     job_id: str,
+    trace_context: dict[str, str] | None = None,
 ) -> dict:
     """Worker entry point: calculate, cache, and release the duplicate lock."""
-    result = build_explanation(cell_line_id, drug_name)
-    pipeline = redis_connection.pipeline()
-    pipeline.set(cache_key, json.dumps(result), ex=CACHE_TTL_SECONDS)
-    pipeline.set(
-        f"explanation:job:{job_id}",
-        json.dumps({"cache_key": cache_key, "cache_hit": False}),
-        ex=CACHE_TTL_SECONDS,
-    )
-    pipeline.delete(inflight_key)
-    pipeline.execute()
-    return result
+    started = time.perf_counter()
+    failed = False
+    try:
+        with operation("worker", "explanation.compute", parent=trace_context):
+            result = build_explanation(cell_line_id, drug_name)
+            pipeline = redis_connection.pipeline()
+            pipeline.set(cache_key, json.dumps(result), ex=CACHE_TTL_SECONDS)
+            pipeline.set(
+                f"explanation:job:{job_id}",
+                json.dumps({"cache_key": cache_key, "cache_hit": False}),
+                ex=CACHE_TTL_SECONDS,
+            )
+            pipeline.delete(inflight_key)
+            pipeline.execute()
+            return result
+    except Exception:
+        failed = True
+        raise
+    finally:
+        # Metrics are best-effort and must never mask the original job result.
+        try:
+            redis_connection.incr("explanation:metrics:processed_jobs")
+            redis_connection.incrbyfloat("explanation:metrics:processing_seconds", time.perf_counter() - started)
+            if failed:
+                redis_connection.incr("explanation:metrics:failed_jobs")
+        except RedisError:
+            pass

@@ -1,187 +1,141 @@
 # CancerBench AI
 
-CancerBench AI is a research-only drug-response prediction service built to
-demonstrate production-oriented machine-learning engineering. Its first phase
-serves an XGBoost model through a validated, tested, Dockerized FastAPI API.
+CancerBench connects experimental drug-response predictions with model feature
+contributions and related PubMed literature. Researchers can inspect all three
+outputs, their limitations, and the request's trace in one browser workspace.
 
-> This project is not clinically validated and must not be used for diagnosis,
-> treatment selection, or other medical decisions.
+> Research use only. Not clinically validated; do not use for diagnosis or
+> treatment selection. Do not enter personal or patient health information.
 
-## Live API
+## Start locally
 
-- Service: <https://cancerbenchai.onrender.com>
-- Interactive documentation: <https://cancerbenchai.onrender.com/docs>
-- Health check: <https://cancerbenchai.onrender.com/health>
-- Model metadata: <https://cancerbenchai.onrender.com/metadata>
-
-The free Render service can take additional time to respond after an idle
-period.
-
-## Make a prediction
+Install Docker with Compose v2. From this repository:
 
 ```bash
-curl -X POST https://cancerbenchai.onrender.com/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "cell_line_id": "SIDM00001",
-    "drug_name": "Cisplatin"
-  }'
+make up
 ```
 
-Example response:
+Open <http://localhost:18003>. Use `make demo` to include local Jaeger traces,
+Prometheus metrics, and Grafana. No OpenAI key, paid embedding API, or hosted
+monitoring account is required. The current workflow makes no LLM calls.
 
-```json
-{
-  "prediction": 3.234267234802246,
-  "cell_line_id": "SIDM00001",
-  "drug_name": "Cisplatin",
-  "model_version": "xgb_v1"
-}
-```
+Keep optional API keys in the Git-ignored local `.env` file; `.env.example`
+contains variable names only. Currently only `NCBI_API_KEY` is used. See
+[OPERATIONS.md](docs/OPERATIONS.md) for environment loading and key handling.
 
-The prediction is `LN_IC50`, not a probability. Lower values indicate greater
-predicted sensitivity within the source research dataset.
+The literature database begins empty. Download and load the real corpus using
+[OPERATIONS.md](docs/OPERATIONS.md); until then responses show a no-evidence
+limitation. All services run locally; containers use your machine's resources.
 
-## Run locally
+| Surface | URL |
+| --- | --- |
+| Research workspace and API docs | http://localhost:18003 and /docs |
+| Prediction API docs | http://localhost:18000/docs |
+| Explanation API docs | http://localhost:18001/docs |
+| Literature API docs | http://localhost:18002/docs |
+| Trace viewer, with monitoring | http://localhost:16686 |
+| Dashboard, with monitoring | http://localhost:3000/d/cancerbench |
 
-Install development dependencies and start FastAPI:
+The previously deployed prediction service is at
+<https://cancerbenchai.onrender.com> and its docs at
+<https://cancerbenchai.onrender.com/docs>. This change does not publish the full
+workspace there. Free Render instances can have cold starts.
+
+## Architecture and workflow
+
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the diagram. Four FastAPI services
+share versioned model artifacts and a Docker image. Prediction runs XGBoost;
+explanation uses an RQ worker and Redis; literature retrieval uses pgvector and
+PostgreSQL; the research API serves the frontend and assembles structured evidence.
+
+A question triggers identifier validation through prediction, explanation job
+submission, literature retrieval, and bounded explanation polling. Streamed
+progress reports real backend stages. The response contains prediction, signed
+SHAP features, PMID citations, limitations, and a distributed trace ID. Evidence
+failures preserve available results. Prediction failures stop the workflow.
+
+The summary identifies retrieved titles and model outputs deterministically.
+Phase 4 LLM synthesis and semantic agent evaluation remain separate work.
+
+## API example
+
+Get supported identifiers from `/catalog`, then submit:
 
 ```bash
-python3 -m pip install -r requirements-dev.txt
-uvicorn app.main:app --reload
+curl http://localhost:18003/catalog
+curl -X POST http://localhost:18003/research \
+  -H 'Content-Type: application/json' \
+  -d '{"cell_line_id":"SIDM00001","drug_name":"Cisplatin","question":"What research discusses TP53 and cisplatin resistance?"}'
 ```
 
-Run the tests:
+Use `curl -N` with `/research/stream` for newline-delimited progress. Once
+streaming begins, workflow failures appear as `event: "error"` records. The
+ordinary `/research` route retains non-2xx error statuses.
+
+Prediction units are `LN_IC50`, the natural logarithm of IC50. Lower values
+indicate greater predicted sensitivity within the training dataset. SHAP
+contributions describe model behavior, not biological causality. Related papers
+do not validate the cell-line prediction.
+
+## Tests and CI
+
+Use Python 3.12 and Node for local development:
 
 ```bash
-python3 -m pytest -q
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+python scripts/check_source.py
+python -m ruff check .
+python -m pytest -q
+node --test tests/frontend.test.cjs
 ```
 
-## Generate an explanation
+Fast tests use synthetic literature, fake Redis, and injected clients. Set
+`REDIS_TEST_URL` and `POSTGRES_TEST_URL` only to isolated test instances to run
+real integration checks. `make smoke` exercises a running Compose stack and a
+cache hit. CI seeds and removes one synthetic article in its isolated database.
 
-The phase-two service calculates XGBoost feature contributions asynchronously.
-Start its API, Redis queue, and worker together:
+GitHub Actions runs source syntax/whitespace checks, lint, unit/API tests, real
+Redis/pgvector integration, retrieval evaluation smoke, the research failure
+matrix, frontend interactions, Docker/Compose integration, dependency advisory
+auditing, and secret scanning. `release-checks` gates all three jobs. The Render
+blueprint selects deployment after passing CI; branch protection and the Render
+account still need configuration.
+
+## Evaluation and limitations
+
+Run the committed 20-query retrieval benchmark against the loaded real corpus:
 
 ```bash
-docker compose up --build
+docker compose exec retrieval-api python -m retrieval_service.evaluate --output /tmp/evaluation.json
+docker compose cp retrieval-api:/tmp/evaluation.json literature_data/evaluation_report.json
 ```
 
-Submit a job at <http://localhost:8001/explanations>:
+Results include recall@5 and MRR on positive queries, separate no-evidence
+accuracy, citation metadata completeness, and nearest-rank p95 latency. The CI
+fixture smoke test is not a real-corpus relevance measurement. Rerun previously
+reported project results on the exact corpus and ranking version being released.
 
-```bash
-curl -X POST http://localhost:8001/explanations \
-  -H "Content-Type: application/json" \
-  -d '{"cell_line_id":"SIDM00001","drug_name":"Cisplatin"}'
-```
+The research failure matrix covers invalid inputs, outages, malformed tool
+outputs, explanation failures/timeouts, and missing evidence. It does not
+measure LLM unsupported claims, refusal robustness, tokens, or LLM cost. No LLM
+is connected. Local hashing embeddings and lexical ranking have limited semantic
+understanding. Metrics assume one Uvicorn process per service. Monitoring data
+are local and ephemeral.
 
-Poll the `status_url` returned by that request until its status is `completed`.
-The result contains the prediction, model base value, and ten largest mutation
-or drug contributions ranked by absolute magnitude. `other_contribution`
-preserves exact reconstruction of the prediction.
+Model and dataset provenance, leakage limitations, and intended use are in
+[MODEL_CARD.md](MODEL_CARD.md). Literature provenance, usage terms, and rebuild
+instructions are in [literature_data/README.md](literature_data/README.md).
 
-Completed results are cached for one hour under a key containing both the model
-and explainer versions. Identical in-progress requests reuse one job. Transient
-worker failures are retried twice; validation failures are rejected before a job
-is created. If a worker crashes, RQ's worker monitoring marks the interrupted
-job for failure or retry, while the duplicate lock expires after twenty minutes
-so it covers the initial attempt and both retries without blocking new work
-indefinitely. Failed responses expose a stable error object and do not expose
-internal tracebacks.
+## Release and demo
 
-For local development, both services use the same versioned artifact directory
-included in the shared Docker image. At production scale artifacts should be immutable,
-versioned artifacts fetched from an artifact registry during deployment.
-These explanations describe model behavior, not biological causality or
-clinical recommendations.
+- [Operations, failure demos, deployment, rollback, and costs](docs/OPERATIONS.md)
+- [Architecture and future production changes](docs/ARCHITECTURE.md)
+- [Engineering decisions](docs/DECISIONS.md)
+- [Three-minute demo script](docs/DEMO.md)
+- [Verification status and remaining release steps](docs/RELEASE_STATUS.md)
 
-To run the test that exercises a real isolated Redis instance, provide a
-dedicated database URL:
-
-```bash
-REDIS_TEST_URL=redis://localhost:6379/15 python3 -m pytest -m integration
-```
-
-## Run with Docker
-
-```bash
-docker build -t cancerbench-prediction:latest .
-docker run --rm -p 8000:8000 cancerbench-prediction:latest
-```
-
-Then open <http://localhost:8000/docs>.
-
-## Model
-
-The model uses 50 binary cancer-driver mutation features and a categorical drug
-feature. See [MODEL_CARD.md](MODEL_CARD.md) for data, evaluation, intended use,
-and limitations.
-
-## Current architecture
-
-```text
-Client -> FastAPI validation -> feature construction -> XGBoost -> JSON response
-```
-
-The phase-two explanation service adds Redis-backed asynchronous XGBoost feature
-contributions. Phase three adds the literature retrieval service described
-below. Future phases add tool-based orchestration, distributed tracing, and a
-minimal research UI.
-
-## Retrieve scientific literature
-
-Phase three adds an independent FastAPI service backed by PostgreSQL and
-`pgvector`. It returns stable PMID citations, relevant passages, similarity
-scores, full source metadata, and ingestion provenance. Similarity is a retrieval
-signal, not evidence that a scientific claim is true.
-
-Start the database and retrieval API:
-
-```bash
-docker compose up --build postgres retrieval-api
-```
-
-Build the reproducible 200–500-article target corpus from the reviewed PubMed
-manifest, then load it idempotently:
-
-```bash
-python -m retrieval_service.ingest download
-DATABASE_URL=postgresql://cancerbench:cancerbench@localhost:5432/cancerbench \
-  python -m retrieval_service.ingest load
-```
-
-Retrieve evidence at <http://localhost:8002/retrieve>:
-
-```bash
-curl -X POST http://localhost:8002/retrieve \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "TP53-associated resistance to Cisplatin",
-    "top_k": 5,
-    "filters": {"year_from": 2015, "minimum_score": 0.08}
-  }'
-```
-
-Filters support publication year, journal, normalized drug/gene aliases, and a
-minimum relevance threshold. `p53`/`TP53`, `CDDP`/`cisplatin`,
-`HER2`/`ERBB2`, and other documented aliases retrieve against the same canonical
-terms. The service deliberately returns an empty result set rather than padding
-weak evidence below the threshold.
-
-Run the committed 20-query evaluation set:
-
-```bash
-python -m retrieval_service.evaluate \
-  --output literature_data/evaluation_report.json
-```
-
-The regular test suite uses an in-memory literature store for fast, deterministic
-checks. To also exercise the real PostgreSQL schema and pgvector similarity
-operator, provide an isolated database URL:
-
-```bash
-POSTGRES_TEST_URL=postgresql://cancerbench:cancerbench@localhost:5432/cancerbench_test \
-  python3 -m pytest -m integration
-```
-
-Corpus provenance, usage constraints, rebuild instructions, and evaluation
-details are documented in `literature_data/README.md`.
+`render.yaml` describes the existing prediction service only. No hosted service,
+paid resource, or deployment is created by this code change. The full workspace
+remains local until hosting is configured separately.

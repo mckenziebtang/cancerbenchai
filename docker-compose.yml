@@ -1,3 +1,6 @@
+x-telemetry: &telemetry
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -23,11 +26,12 @@ services:
 
   explanation-api:
     build: .
-    command: uvicorn explanation_service.main:app --host 0.0.0.0 --port 8001
+    command: uvicorn explanation_service.main:app --host 0.0.0.0 --port 8001 --no-access-log
     environment:
+      <<: *telemetry
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "8001:8001"
+      - "127.0.0.1:18001:8001"
     depends_on:
       redis:
         condition: service_healthy
@@ -41,6 +45,7 @@ services:
     build: .
     command: python -m explanation_service.worker
     environment:
+      <<: *telemetry
       REDIS_URL: redis://redis:6379/0
     depends_on:
       redis:
@@ -49,8 +54,9 @@ services:
 
   prediction-api:
     build: .
+    environment: *telemetry
     ports:
-      - "8000:8000"
+      - "127.0.0.1:18000:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
@@ -59,9 +65,11 @@ services:
 
   retrieval-api:
     build: .
-    command: uvicorn retrieval_service.main:app --host 0.0.0.0 --port 8002
+    command: uvicorn retrieval_service.main:app --host 0.0.0.0 --port 8002 --no-access-log
     environment:
+      <<: *telemetry
       DATABASE_URL: postgresql://cancerbench:cancerbench@postgres:5432/cancerbench
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
     ports:
       - "127.0.0.1:18002:8002"
     depends_on:
@@ -72,6 +80,59 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  research-api:
+    build: .
+    command: uvicorn agent_service.main:app --host 0.0.0.0 --port 8003 --no-access-log
+    environment:
+      <<: *telemetry
+      PREDICTION_URL: http://prediction-api:8000
+      EXPLANATION_URL: http://explanation-api:8001
+      RETRIEVAL_URL: http://retrieval-api:8002
+    ports:
+      - "127.0.0.1:18003:8003"
+    depends_on:
+      prediction-api:
+        condition: service_healthy
+      explanation-api:
+        condition: service_healthy
+      retrieval-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  jaeger:
+    image: jaegertracing/jaeger:2.11.0
+    profiles: [monitoring]
+    command: ["--set", "receivers.otlp.protocols.http.endpoint=0.0.0.0:4318"]
+    ports:
+      - "127.0.0.1:16686:16686"
+
+  prometheus:
+    image: prom/prometheus:v3.7.0
+    profiles: [monitoring]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    profiles: [monitoring]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
 
 volumes:
   literature-postgres-data:

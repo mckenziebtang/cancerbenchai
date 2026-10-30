@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CancerBench · Research workspace</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="/">CB<span>CancerBench<span class="brand-sub">AI RESEARCH WORKSPACE</span></span></a><a href="/docs">API docs ↗</a></header>
+  <main>
+    <div class="eyebrow">FROM MODEL OUTPUT TO RESEARCH CONTEXT</div>
+    <h1>Follow the evidence.</h1>
+    <p class="intro">Explore a drug-response prediction, inspect the model’s feature contributions, and read the related PubMed evidence in one place.</p>
+    <div class="disclaimer"><strong>Research use only.</strong> Experimental model outputs are not clinically validated. Do not enter personal or patient health information.</div>
+    <div class="workspace">
+      <aside class="panel">
+        <span class="eyebrow">01 / YOUR QUESTION</span><h2>Start an investigation</h2>
+        <form id="research-form">
+          <label for="cell-line">Cell line</label><select id="cell-line" required><option value="">Loading supported cell lines…</option></select>
+          <label for="drug">Drug</label><select id="drug" required><option value="">Loading supported drugs…</option></select>
+          <label for="question">Research question</label><textarea id="question" rows="5" maxlength="1000" required placeholder="What research discusses TP53 and cisplatin resistance?">What research discusses TP53 and cisplatin resistance?</textarea>
+          <p class="hint">Use a gene, mechanism, or research topic. Each citation links back to its source.</p>
+          <button type="submit" id="submit" disabled>Gather evidence <span aria-hidden="true">↗</span></button>
+        </form>
+        <p id="catalog-status" class="hint" role="status">Connecting to the prediction service…</p>
+        <button id="retry-catalog" type="button" class="secondary" hidden>Retry connection</button>
+        <div id="progress" hidden aria-live="polite"><h3>Request progress</h3><ol><li id="progress-prediction">Prediction · waiting</li><li id="progress-explanation">SHAP explanation · waiting</li><li id="progress-literature">Literature · waiting</li></ol></div>
+      </aside>
+      <section class="results" aria-live="polite" aria-busy="false" id="results">
+        <div id="error" class="error" role="alert" hidden></div>
+        <div id="empty" class="panel empty"><span class="empty-icon" aria-hidden="true">↗</span><h2>A question is the starting point.</h2><p>Your prediction, model contributions, and traceable research will appear here.</p><div class="tags"><span>XGBoost prediction</span><span>TreeSHAP explanation</span><span>PubMed sources</span></div></div>
+        <div id="output" hidden>
+          <div class="section-heading"><span class="eyebrow">02 / EVIDENCE WORKSPACE</span><span id="result-state" class="badge"></span></div>
+          <div class="panel prediction"><div><span class="eyebrow">PREDICTED DRUG RESPONSE</span><div class="prediction-value"><span id="prediction-value"></span><span class="unit">LN_IC50</span></div><p id="prediction-context"></p></div><div class="interpretation">Lower values indicate greater predicted sensitivity within the training dataset. This score is not a probability or a treatment recommendation.</div></div>
+          <div class="panel"><h2>Research context</h2><p id="answer"></p></div>
+          <div class="panel"><div class="section-heading"><h2>Model feature contributions</h2><span id="cache-status" class="badge"></span></div><p class="hint">Signed contributions to the model’s LN_IC50 estimate. These describe model behavior; they do not establish biological causality.</p><div id="features"></div></div>
+          <section><div class="section-heading"><h2>Related literature</h2><span id="citation-count" class="hint"></span></div><div id="citations"></div></section>
+          <div class="panel limitations"><h2>Limitations</h2><ul id="limitations"></ul></div>
+          <details class="panel"><summary>Inspect evidence and trace</summary><p class="hint">Trace ID: <code id="trace-id"></code></p><p class="hint">Find this ID in Jaeger when the local monitoring profile is enabled.</p><pre id="evidence"></pre></details>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer>Built for research exploration.<span>Prediction → explanation → literature</span></footer>
+</body>
+</html>

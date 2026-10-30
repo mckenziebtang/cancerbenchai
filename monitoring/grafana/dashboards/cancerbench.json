@@ -1,0 +1,308 @@
+{
+  "uid": "cancerbench",
+  "title": "CancerBench \u00b7 System health",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "HTTP requests / second",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(cancerbench_http_requests_total[1m]))",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "HTTP error fraction",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(cancerbench_http_requests_total{status=~\"5..\"}[1m])) / clamp_min(sum by (service) (rate(cancerbench_http_requests_total[1m])), 0.0001)",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Prediction p95",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(cancerbench_operation_duration_seconds_bucket{operation=\"model.predict\"}[1m])))",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Explanation queue depth",
+      "gridPos": {
+        "x": 12,
+        "y": 7,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "cancerbench_explanation_queue_depth",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Mean explanation processing time",
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(cancerbench_explanation_processing_seconds_total[1m]) / clamp_min(rate(cancerbench_explanation_processed_jobs_total[1m]), 0.0001)",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Cache hit fraction",
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(cancerbench_explanation_cache_hits_total[1m]) / clamp_min(rate(cancerbench_explanation_cache_hits_total[1m]) + rate(cancerbench_explanation_cache_misses_total[1m]), 0.0001)",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Retrieval p95",
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(cancerbench_operation_duration_seconds_bucket{operation=\"literature.retrieve\"}[1m])))",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Partial research responses / second",
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(cancerbench_partial_responses_total[1m])",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Scrape health",
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "up{job=\"cancerbench\"}",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Queue metrics available",
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "cancerbench-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "cancerbench_queue_metrics_available",
+          "refId": "A",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "text",
+      "title": "LLM latency, tokens, and cost",
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "The current research workflow is deterministic and makes **no LLM calls**. LLM latency and token usage are not applicable; external model cost is **$0**. Instrument actual usage when Phase 4 synthesis is connected. Local containers still use CPU and memory. Traces: [Jaeger](http://localhost:16686)."
+      }
+    }
+  ]
+}

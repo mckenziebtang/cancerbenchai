@@ -1,17 +1,17 @@
 import pandas as pd
 import pytest
-from app import model as app_model 
+from app import model as app_model
 
 #make a small dumb model to test
-class DummyXGBModel: 
+class DummyXGBModel:
     def predict(self, X):
         return [0.37]
-    
-@pytest.fixture 
+
+@pytest.fixture
 def fake_model(monkeypatch):
     monkeypatch.setattr(app_model, "model", DummyXGBModel())
 
-@pytest.fixture 
+@pytest.fixture
 def fake_artifacts(monkeypatch):
     monkeypatch.setattr(app_model, "gene_cols", ["GENE1", "GENE2"])
     monkeypatch.setattr(app_model, "drug_categories", ["cisplatin", "paclitaxel"])

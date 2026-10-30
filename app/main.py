@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from observability.telemetry import instrument_app, traced
 
 from app.model import (
     MODEL_VERSION,
@@ -27,6 +28,7 @@ app = FastAPI(
     ),
     version=MODEL_VERSION,
 )
+instrument_app(app, "prediction")
 
 @app.get("/")
 def root():
@@ -76,6 +78,7 @@ def list_drugs():
     response_model=PredictResponse,
     responses={400: {"model": ErrorResponse}},
 )
+@traced("prediction", "model.predict")
 def predict_endpoint(req: PredictRequest):
     try:
         return predict(req.cell_line_id, req.drug_name)

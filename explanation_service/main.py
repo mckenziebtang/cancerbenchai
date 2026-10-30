@@ -5,6 +5,8 @@ from redis.exceptions import RedisError
 from rq import Retry
 from rq.exceptions import NoSuchJobError
 from rq.job import Job
+from observability.telemetry import carrier, instrument_app, traced
+from observability.queue_metrics import QueueCollector
 
 from app.model import build_feature_row
 from explanation_service.cache import explanation_cache_key, explanation_job_id
@@ -24,6 +26,7 @@ from explanation_service.tasks import (
 
 
 app = FastAPI(title="CancerBench Explanation Service", version="0.2.0")
+instrument_app(app, "explanation", QueueCollector(redis_connection, explanation_queue))
 
 
 def _release_inflight_lock(inflight_key: str) -> None:
@@ -66,6 +69,7 @@ def health():
     response_model=ExplainSubmissionResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@traced("explanation", "explanation.submit")
 def submit_explanation(req: ExplainRequest):
     try:
         build_feature_row(req.cell_line_id, req.drug_name)
@@ -110,6 +114,7 @@ def submit_explanation(req: ExplainRequest):
         explanation_queue.enqueue(
             run_explanation, req.cell_line_id, req.drug_name,
             cache_key, inflight_key, job_id,
+            carrier(),
             job_id=job_id, job_timeout=JOB_TIMEOUT_SECONDS,
             result_ttl=CACHE_TTL_SECONDS, failure_ttl=86400,
             retry=Retry(max=JOB_MAX_RETRIES, interval=list(JOB_RETRY_INTERVALS)),
@@ -126,6 +131,7 @@ def submit_explanation(req: ExplainRequest):
 
 
 @app.get("/explanations/{job_id}", response_model=ExplainStatusResponse)
+@traced("explanation", "explanation.cache_lookup")
 def get_explanation(job_id: str):
     try:
         job_mapping = redis_connection.get(f"explanation:job:{job_id}")

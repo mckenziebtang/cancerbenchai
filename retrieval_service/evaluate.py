@@ -4,6 +4,7 @@ import argparse
 import json
 import statistics
 import time
+import math
 from pathlib import Path
 
 from retrieval_service.schemas import RetrieveRequest
@@ -59,8 +60,8 @@ def evaluate(service: RetrievalService, cases: list[dict], top_k: int) -> dict:
         ),
         "citation_metadata_completeness": statistics.fmean(completeness) if completeness else 0.0,
         "latency_ms": {
-            "mean": statistics.fmean(latencies),
-            "p95": sorted(latencies)[max(0, int(len(latencies) * 0.95) - 1)],
+            "mean": statistics.fmean(latencies) if latencies else 0.0,
+            "p95": sorted(latencies)[max(0, math.ceil(len(latencies) * 0.95) - 1)] if latencies else 0.0,
         },
         "cases": details,
     }

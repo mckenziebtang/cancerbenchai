@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+scrape_configs:
+  - job_name: cancerbench
+    static_configs:
+      - targets:
+          - prediction-api:8000
+          - explanation-api:8001
+          - retrieval-api:8002
+          - research-api:8003

@@ -7,3 +7,7 @@ pydantic==2.13.4
 redis==8.1.0
 rq==2.10.0
 psycopg[binary]==3.3.3
+opentelemetry-sdk==1.45.1
+opentelemetry-exporter-otlp-proto-http==1.45.1
+prometheus-client==0.23.1
+python-dotenv==1.2.4

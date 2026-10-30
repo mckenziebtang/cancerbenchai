@@ -1,0 +1,11 @@
+# Optional blueprint for the existing prediction service only.
+# Applying this file is a separate deployment action.
+services:
+  - type: web
+    name: cancerbenchai
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass

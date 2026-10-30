@@ -35,18 +35,17 @@ _CANONICAL_BY_TERM = {
     for term in (canonical, *aliases)
 }
 _PATTERNS = sorted(_CANONICAL_BY_TERM, key=len, reverse=True)
+_ALIAS_PATTERN = re.compile(
+    rf"(?<![A-Za-z0-9])(?:{'|'.join(re.escape(term) for term in _PATTERNS)})(?![A-Za-z0-9])",
+    flags=re.IGNORECASE,
+)
 
 
 def normalize_aliases(text: str) -> str:
     """Replace known aliases with canonical symbols/names, case-insensitively."""
-    normalized = text
-    for term in _PATTERNS:
-        normalized = re.sub(
-            rf"(?<![A-Za-z0-9]){re.escape(term)}(?![A-Za-z0-9])",
-            _CANONICAL_BY_TERM[term],
-            normalized,
-            flags=re.IGNORECASE,
-        )
+    normalized = _ALIAS_PATTERN.sub(
+        lambda match: _CANONICAL_BY_TERM[match.group(0).upper()], text
+    )
     return re.sub(r"\s+", " ", normalized).strip()
 
 

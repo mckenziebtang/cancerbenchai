@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from pydantic import ValidationError
+from dotenv import load_dotenv
 
 from retrieval_service.pubmed import download_manifest
 from retrieval_service.schemas import ArticleInput
@@ -47,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     args = build_parser().parse_args()
+    load_dotenv(dotenv_path=Path(".env"), override=False)
     if args.command == "download":
         counts = download_manifest(args.manifest, args.output, os.getenv("NCBI_API_KEY"))
         LOGGER.info("PubMed download: %s", json.dumps(counts, sort_keys=True))

@@ -1,8 +1,8 @@
 import pytest
-from pydantic import ValidationError 
+from pydantic import ValidationError
 from app.schemas import PredictRequest, PredictResponse
 
-#test case 
+#test case
 def test_predict_request_valid():
     req = PredictRequest(cell_line_id ="A549", drug_name="cisplatin")
     assert req.cell_line_id == "A549"

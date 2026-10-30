@@ -1,4 +1,8 @@
 .git
+.env
+.env.*
+.ruff_cache/
+reports/
 .DS_Store
 __pycache__/
 *.py[cod]
@@ -9,3 +13,5 @@ tests/
 tmp/
 gdsc2_ic50.xlsx
 mutations_summary.csv
+literature_data/pubmed_abstracts.jsonl
+literature_data/evaluation_report.json

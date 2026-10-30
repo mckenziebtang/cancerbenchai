@@ -17,6 +17,7 @@ from retrieval_service.schemas import (
     RetrieveResponse,
 )
 from retrieval_service.store import LiteratureStore
+from observability.telemetry import traced
 
 
 LOGGER = logging.getLogger("cancerbench.ingestion")
@@ -57,6 +58,7 @@ class RetrievalService:
                 LOGGER.exception("Failed to ingest PMID %s", article.pmid)
         return stats
 
+    @traced("retrieval", "literature.retrieve")
     def retrieve(self, request: RetrieveRequest) -> RetrieveResponse:
         started = time.perf_counter()
         normalized_query = normalize_aliases(request.query)

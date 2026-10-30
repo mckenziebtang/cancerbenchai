@@ -4,6 +4,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from observability.telemetry import instrument_app
 
 from retrieval_service.schemas import RetrievalMetadata, RetrieveRequest, RetrieveResponse
 from retrieval_service.service import RetrievalService
@@ -30,11 +31,14 @@ def create_app(service: RetrievalService | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.retrieval_service = retrieval_service
+    instrument_app(app, "retrieval")
 
     @app.get("/health")
     def health():
         try:
             connected = app.state.retrieval_service.store.health()
+            if not connected:
+                raise RuntimeError("Database health check failed")
         except Exception as exc:
             raise HTTPException(status_code=503, detail="Literature database is unavailable") from exc
         return {"status": "ok", "database": "connected" if connected else "unavailable"}
