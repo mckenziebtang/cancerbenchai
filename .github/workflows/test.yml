@@ -3,7 +3,7 @@ name: CancerBench checks
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, codex/free-hosting]
   workflow_dispatch:
 
 permissions:
@@ -92,6 +92,34 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  free-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build compact deployment
+        run: docker build -f deploy/free.Dockerfile -t cancerbench-free .
+      - name: Start within the free memory allowance
+        run: docker run -d --name cancerbench-free-smoke --memory=512m --memory-swap=512m --cpus=1 -e DEMO_SKIP_DOWNLOAD=1 -p 127.0.0.1:18004:10000 cancerbench-free
+      - name: Stream real inference, TreeSHAP, and a cache hit
+        run: python scripts/free_smoke.py
+      - name: Collect compact deployment logs
+        if: always()
+        run: |
+          mkdir -p reports
+          docker logs cancerbench-free-smoke > reports/free-demo.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: free-demo-logs
+          path: reports/
+      - name: Stop isolated compact deployment
+        if: always()
+        run: docker rm -f cancerbench-free-smoke || true
+
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -110,11 +138,12 @@ jobs:
   release-checks:
     runs-on: ubuntu-latest
     if: always()
-    needs: [tests, compose, security]
+    needs: [tests, compose, free-demo, security]
     steps:
       - name: Require every release check
         env:
           TESTS: ${{ needs.tests.result }}
           COMPOSE: ${{ needs.compose.result }}
           SECURITY: ${{ needs.security.result }}
-        run: test "$TESTS" = success && test "$COMPOSE" = success && test "$SECURITY" = success
+          FREE_DEMO: ${{ needs.free-demo.result }}
+        run: test "$TESTS" = success && test "$COMPOSE" = success && test "$FREE_DEMO" = success && test "$SECURITY" = success

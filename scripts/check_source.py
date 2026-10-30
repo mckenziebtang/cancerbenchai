@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DIRECTORIES = ["app", "agent_service", "explanation_service", "retrieval_service", "observability", "scripts", "tests"]
+DIRECTORIES = ["app", "agent_service", "explanation_service", "retrieval_service", "observability", "deploy", "scripts", "tests"]
 
 
 def main():

@@ -21,8 +21,9 @@ class UpstreamError(Exception):
 
 
 class HttpServiceClient:
-    def __init__(self, timeout: float = 5.0):
+    def __init__(self, timeout: float = 5.0, *, internal_token: str | None = None):
         self.timeout = timeout
+        self.internal_token = internal_token
         self.urls = {
             "prediction": os.getenv("PREDICTION_URL", "http://localhost:18000").rstrip("/"),
             "explanation": os.getenv("EXPLANATION_URL", "http://localhost:18001").rstrip("/"),
@@ -49,7 +50,11 @@ class HttpServiceClient:
         data = json.dumps(payload).encode("utf-8") if payload is not None else None
         request = urllib.request.Request(
             self.urls[service] + path, data=data,
-            headers={**carrier(), **({"Content-Type": "application/json"} if data is not None else {})},
+            headers={
+                **carrier(),
+                **({"Content-Type": "application/json"} if data is not None else {}),
+                **({"X-CancerBench-Internal": self.internal_token} if self.internal_token else {}),
+            },
             method="POST" if data is not None else "GET",
         )
         try:

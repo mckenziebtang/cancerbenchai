@@ -99,7 +99,7 @@ cache hit. CI seeds and removes one synthetic article in its isolated database.
 GitHub Actions runs source syntax/whitespace checks, lint, unit/API tests, real
 Redis/pgvector integration, retrieval evaluation smoke, the research failure
 matrix, frontend interactions, Docker/Compose integration, dependency advisory
-auditing, and secret scanning. `release-checks` gates all three jobs. The Render
+auditing, and secret scanning. `release-checks` gates all four jobs. The Render
 blueprint selects deployment after passing CI; branch protection and the Render
 account still need configuration.
 
@@ -136,6 +136,9 @@ instructions are in [literature_data/README.md](literature_data/README.md).
 - [Three-minute demo script](docs/DEMO.md)
 - [Verification status and remaining release steps](docs/RELEASE_STATUS.md)
 
-`render.yaml` describes the existing prediction service only. No hosted service,
-paid resource, or deployment is created by this code change. The full workspace
-remains local until hosting is configured separately.
+`render.yaml` describes the existing prediction service only. `render-free.yaml`
+describes a separate $0 research demo service using the compact deployment.
+
+For the optional full research demo on a single free web instance, see
+[FREE_HOSTING.md](docs/FREE_HOSTING.md). That profile has an ephemeral database,
+cold starts, and one active research request at a time.

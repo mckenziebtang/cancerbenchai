@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import anyio
@@ -33,7 +34,10 @@ def create_app(service: ResearchService | None = None) -> FastAPI:
             drugs = client.get("prediction", "/drugs")["drug_names"]
             if not all(isinstance(items, list) and all(isinstance(item, str) for item in items) for items in (cells, drugs)):
                 raise ValueError("Invalid catalog")
-            return {"cell_line_ids": cells, "drug_names": drugs}
+            result = {"cell_line_ids": cells, "drug_names": drugs}
+            if notice := os.getenv("HOSTING_NOTICE"):
+                result["notice"] = notice
+            return result
         except (UpstreamError, KeyError, TypeError, ValueError):
             return JSONResponse(status_code=503, content={"code": "CATALOG_UNAVAILABLE", "message": "Could not load supported identifiers. Try again when prediction is available."})
 

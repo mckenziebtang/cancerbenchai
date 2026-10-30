@@ -1,0 +1,10 @@
+# Full demo: one free instance with disposable local data stores.
+services:
+  - type: web
+    name: cancerbenchai-demo
+    runtime: docker
+    plan: free
+    branch: codex/free-hosting
+    dockerfilePath: ./deploy/free.Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass

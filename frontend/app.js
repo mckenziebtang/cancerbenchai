@@ -25,6 +25,7 @@ async function loadCatalog() {
     catalogReady = true;
     $("submit").disabled = false;
     $("catalog-status").textContent = "Supported identifiers loaded from the prediction model.";
+    if (typeof data.notice === "string") $("catalog-status").textContent += ` ${data.notice}`;
   } catch {
     catalogReady = false;
     $("catalog-status").textContent = "Could not load supported identifiers. Check that the prediction service is running.";
